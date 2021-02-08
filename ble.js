@@ -6,6 +6,7 @@ const common = require('./common');
 const mqtt = require('./mqtt_client');
 
 const BLE_devices = [];
+BLE_discover_devices = [];
 const unit_of_measurement = {
     'temperature': '°C',
     'humidity': '%',
@@ -23,8 +24,9 @@ if (common.config.use_ble) {
 
 noble.on('discover', async (peripheral) => {
     try {
+//	common.myLog('BLE Device Id: ' + peripheral.id + ' Name: ' + peripheral.advertisement.localName + ' rssi: ' + peripheral.rssi);
         let result = new miParser(peripheral.advertisement.serviceData[0].data, 'e85feb9d97474fcf329b0d611afb4e4a').parse();
-
+//	common.myLog('BLE Device Id: ' + peripheral.id + ' Name: ' + peripheral.advertisement.localName + ' rssi: ' + peripheral.rssi);
         Object.keys(result.event).forEach(function (key) {
             if (!BLE_devices[peripheral.id]) {
                 BLE_devices[peripheral.id] = {}
@@ -45,13 +47,72 @@ noble.on('discover', async (peripheral) => {
             }
         });
     } catch (e) {
-        //common.myLog(e, common.colors.res);
+//        common.myLog(e, common.colors.res);
     }
+    try{
+    //BLE device discover monitor
+//	common.myLog('BLE2 Device Id: ' + peripheral.id + ' Name: ' + peripheral.advertisement.localName + ' rssi: ' + peripheral.rssi);
+	localname = '';
+	if (peripheral.advertisement.localName !== undefined) {
+	    localname = peripheral.advertisement.localName;
+	}
+	else{
+	    localname = 'none';
+	}
+	let ts = Date.now();
+	let string_ts = timeConverter(ts);
+	
+        if (!BLE_discover_devices[peripheral.id]) {
+                BLE_discover_devices[peripheral.id] = {
+            	    id: peripheral.id,
+            	    name: localname,
+            	    rssi: peripheral.rssi,
+            	    lastSeen: string_ts
+                };
+        }
+    } catch (ee) {
+        common.myLog(ee, common.colors.res);
+    }
+
 
 });
 
+//Time converter
+function timeConverter(UNIX_timestamp){
+  var a = new Date(UNIX_timestamp);
+  var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  var year = a.getFullYear();
+  var month = months[a.getMonth()];
+  var date = a.getDate();
+  var hour = a.getHours() < 10 ? '0' + a.getHours() : a.getHours();
+  var min = a.getMinutes() < 10 ? '0' + a.getMinutes() : a.getMinutes();
+  var sec = a.getSeconds() < 10 ? '0' + a.getSeconds() : a.getSeconds();
+  var time = date + ' ' + month + ' ' + year + ' ' + hour + ':' + min + ':' + sec ;
+  return time;
+}
+
+// Отправляем информацию обо всех BLE обнаруженных устройствах
+function getDiscoverDevices() {
+//    common.myLog('getDiscoverDevices');
+    Object.keys(BLE_discover_devices).forEach(device_id => {
+	  let device = BLE_discover_devices[device_id];
+	  common.myLog('BLE3 Device Id: ' + device.id + ' Name: ' + device.name + ' rssi: ' + device.rssi);
+          let dev ={
+            state_topic: common.config.mqtt_topic + '/ble_discover/' + device_id,
+            value:{
+        	id: device.id,
+        	name: device.name,
+        	rssi: device.rssi,
+        	lastSeen: device.lastSeen
+            }
+          };
+          mqtt.publish(dev);
+    });
+}
+
 // Отправляем информацию об устройствах
 function getDevices() {
+//    common.myLog('getDevices');
     let devices = {}
     Object.keys(BLE_devices).forEach(device_id => {
         devices.state_topic = common.config.mqtt_topic + '/' + device_id;
@@ -333,5 +394,6 @@ class miParser {
 }
 
 module.exports = {
-    getDevices
+    getDevices,
+    getDiscoverDevices
 }

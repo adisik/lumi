@@ -9,21 +9,23 @@ const gateway = require('./gateway');
 const mqtt = require('./mqtt_client');
 const ble = require('./ble');
 
-gateway.setVolume(50);
+gateway.setVolume(55);
 
 // Запускаем таймер 1
 setInterval(() => {
+//    common.myLog('timer 1 tick');
     gateway.getIlluminance(common.config.sensor_treshhold);
 }, 1 * 1000);
 
 // Запускаем таймер 2 для публикации состояний датчиков
 let timer_ID = setTimeout( function tick() {
-    common.myLog('timer 2', common.colors.cyan);
+//    common.myLog('timer 2', common.colors.cyan);
 
     // Отправляем состояния устройств
     gateway.getState();
     if (common.config.use_ble) {
         ble.getDevices();
+        ble.getDiscoverDevices();
     }
 
     timer_ID = setTimeout(tick, common.config.sensor_debounce_period * 1000);
