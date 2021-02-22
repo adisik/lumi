@@ -45,7 +45,7 @@ opkg update && opkg install node git-http mpc mpd-full
 ```
 mkdir /opt
 cd /opt
-git clone https://github.com/Beetle-II/lumi.git
+git clone https://github.com/adisik/lumi.git
 cd lumi
 cp config_example.json config.json
 ```
@@ -82,6 +82,10 @@ cp config_example.json config.json
 "sensor_treshhold": 50 | порог изменения состояния датчика, для моментальной отправки данных
 ||
 "use_mac_in_mqtt_topic": true | добавить MAC шлюза в MQTT топики
+
+После установки или после обновления необходимо удалить файлы /overlay/upper/etc/rc.local 
+и /overlay/upper/etc/asound.conf, так как в новой оврт они были модифицированы.
+После этого перезагрузить шлюз.
 
 Запускаем:
 
@@ -125,3 +129,4 @@ lumi/audio/volume/set | 30 | Именить громкость на 30
 ||
 lumi/say/set | {"text": "Привет", "volume": 80} | Произнести 'Привет' с громкостью 80
 lumi/say/set | "Привет" | Произнести 'Привет'
+lumi/ble_discover/device_id |  | Топики с устройствами BLE обнаруженными рядом
